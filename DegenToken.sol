@@ -5,15 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "hardhat/console.sol";
 
-contract DegenToken is ERC20, Ownable,ERC20Burnable  {
-
+contract DegenToken is ERC20, Ownable, ERC20Burnable {
     struct str {
-       
         string itemName;
         uint256 itemPrice;
-       
     }
 
     str[] private _storestrs;
@@ -24,29 +20,23 @@ contract DegenToken is ERC20, Ownable,ERC20Burnable  {
         _storestrs.push(str("hoodie", 1100));
     }
 
-      function tokenTransfer(address owner, uint _amount) external {
-        require(balanceOf(msg.sender) >= _amount, "Low  Balance!! ");
-        approve(msg.sender, _amount);
-        transferFrom(msg.sender, owner, _amount);
-    }
+    event ItemRedeemed(address indexed user, string itemName, uint256 itemPrice);
 
+    function redeemItems(uint listNumber) external returns (string memory) {
+        require(listNumber > 0 && listNumber <= _storestrs.length, "Choice not available for you");
+        str memory selectedStr = _storestrs[listNumber - 1];
 
-    function mintcoins(address to, uint _amount) public onlyOwner {
-        _mint(to, _amount);
-    }
+        // Check if the user has enough tokens
+        require(balanceOf(msg.sender) >= selectedStr.itemPrice, "Insufficient Balance in your account");
 
-      function burncoins(uint _amount) external {
-        _burn(msg.sender, _amount);
-    }
+        // Transfer tokens from the user to the contract owner
+        _transfer(msg.sender, owner(), selectedStr.itemPrice);
 
-  
-    function redeemItems(uint listNumber) external payable returns (string memory) {
-        require(listNumber > 0 && listNumber <= _storestrs.length, "choice not avilable for you");
-        str memory Str = _storestrs[listNumber-1];
-        require(this.balanceOf(msg.sender) >= Str.itemPrice, "Insufficient Balance in your account");
-        approve(msg.sender, Str.itemPrice);
-        transferFrom(msg.sender, owner(), Str.itemPrice);
-        return string.concat(" Congratulations You  successfully redeemed tokens for ", Str.itemName);
+        // Emit an event to log the redemption
+        emit ItemRedeemed(msg.sender, selectedStr.itemName, selectedStr.itemPrice);
+
+        // Return a success message
+        return string(abi.encodePacked("Congratulations! You successfully redeemed tokens for ", selectedStr.itemName));
     }
 
     function check_amount() external view returns (uint) {
@@ -57,10 +47,9 @@ contract DegenToken is ERC20, Ownable,ERC20Burnable  {
         string memory response = "Available items are shown as:";
 
         for (uint i = 0; i < _storestrs.length; ++i) {
-            response = string.concat(response, "\n", Strings.toString(i+1), ". ", _storestrs[i].itemName );
-            }
- 
+            response = string.concat(response, "\n", Strings.toString(i+1), ". ", _storestrs[i].itemName);
+        }
+
         return response;
     }
-  
 }
